@@ -9,12 +9,22 @@
 
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
 
-<div id="app" class="bg-white w-full max-w-3xl p-6 rounded shadow">
-
+<div id="startScreen" class="bg-white p-8 rounded shadow max-w-md w-full text-center">
   <h1 class="text-2xl font-bold mb-4">Online Assessment</h1>
+  <p class="text-gray-600 mb-6">
+    Once you start the exam, it will enter fullscreen mode and the timer will begin.
+  </p>
+  <button id="startBtn"
+    class="w-full py-3 bg-blue-600 text-white rounded font-semibold">
+    Start Exam
+  </button>
+</div>
+
+<div id="examScreen"
+  class="hidden bg-white w-full max-w-3xl p-6 rounded shadow">
 
   <div class="flex justify-between mb-4">
-    <div id="studentInfo" class="text-sm text-gray-600"></div>
+    <h2 class="font-bold text-lg">Assessment</h2>
     <div id="timer" class="font-mono font-bold text-red-600"></div>
   </div>
 
@@ -29,28 +39,23 @@
     class="mt-6 w-full py-3 bg-green-600 text-white rounded hidden">
     Submit Exam
   </button>
-
 </div>
 
 <script>
 /* ================= CONFIG ================= */
-const EXAM_ID = "IILM";
+const EXAM_ID = "AI_MIDTERM_01";
 const EXAM_DURATION_MIN = 30;
 const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbxUX09weHXOk2D6iijxzIAscvZEQLeOIO_2Hx-YAdq2vRa55YBI9X_PcHIsb1eYDqGMSA/exec";
 
 /* ================= STATE ================= */
-const urlParams = new URLSearchParams(window.location.search);
-const examToken = urlParams.get("token") || "UNKNOWN";
-const studentId = urlParams.get("student") || "UNKNOWN";
-
+let examStarted = false;
 let currentQ = 0;
 let answers = {};
 let tabSwitchCount = 0;
 let fullscreenExitCount = 0;
 let pageReloadCount = 0;
 let copyPasteAttempts = 0;
-
-const examStartTime = new Date().toISOString();
+let examStartTime;
 
 /* ================= QUESTIONS ================= */
 let questions = shuffle([
@@ -81,10 +86,20 @@ let questions = shuffle([
 
 questions.forEach(q => q.options = shuffle(q.options));
 
-/* ================= UI ================= */
-document.getElementById("studentInfo").innerText =
-  `Student: ${studentId} | Token: ${examToken}`;
+/* ================= START EXAM ================= */
+document.getElementById("startBtn").onclick = async () => {
+  await document.documentElement.requestFullscreen?.();
+  examStarted = true;
+  examStartTime = new Date().toISOString();
 
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("examScreen").classList.remove("hidden");
+
+  startTimer();
+  renderQuestion();
+};
+
+/* ================= UI ================= */
 function renderQuestion() {
   const q = questions[currentQ];
   document.getElementById("questionBox").innerHTML = `
@@ -115,36 +130,40 @@ function renderQuestion() {
 }
 
 /* ================= TIMER ================= */
-let remaining = EXAM_DURATION_MIN * 60;
+let timerInterval;
+function startTimer() {
+  let remaining = EXAM_DURATION_MIN * 60;
+  timerInterval = setInterval(() => {
+    remaining--;
+    document.getElementById("timer").innerText =
+      `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2,"0")}`;
 
-const timerInterval = setInterval(() => {
-  remaining--;
-  document.getElementById("timer").innerText =
-    `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2,"0")}`;
-
-  if (remaining <= 0) submitExam();
-}, 1000);
+    if (remaining <= 0) submitExam();
+  }, 1000);
+}
 
 /* ================= ANTI-CHEAT ================= */
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) tabSwitchCount++;
+  if (examStarted && document.hidden) tabSwitchCount++;
 });
 
 document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement) fullscreenExitCount++;
+  if (examStarted && !document.fullscreenElement) fullscreenExitCount++;
 });
 
 document.addEventListener("copy", e => {
+  if (!examStarted) return;
   e.preventDefault();
   copyPasteAttempts++;
 });
 document.addEventListener("paste", e => {
+  if (!examStarted) return;
   e.preventDefault();
   copyPasteAttempts++;
 });
 
 window.addEventListener("beforeunload", () => {
-  pageReloadCount++;
+  if (examStarted) pageReloadCount++;
 });
 
 /* ================= NAV ================= */
@@ -170,8 +189,6 @@ function submitExam() {
   });
 
   const payload = {
-    student_id: studentId,
-    exam_token: examToken,
     exam_id: EXAM_ID,
     answers,
     score,
@@ -207,10 +224,6 @@ function submitExam() {
 function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
-
-/* ================= START ================= */
-document.documentElement.requestFullscreen?.();
-renderQuestion();
 </script>
 </body>
 </html>
