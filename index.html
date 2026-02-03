@@ -9,22 +9,34 @@
 
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
 
-<div id="startScreen" class="bg-white p-8 rounded shadow max-w-md w-full text-center">
-  <h1 class="text-2xl font-bold mb-4">Online Assessment</h1>
-  <p class="text-gray-600 mb-6">
-    Once you start the exam, it will enter fullscreen mode and the timer will begin.
-  </p>
+<!-- ================= START SCREEN ================= -->
+<div id="startScreen" class="bg-white p-8 rounded shadow w-full max-w-md">
+  <h1 class="text-2xl font-bold mb-6 text-center">Online Assessment</h1>
+
+  <label class="block mb-4">
+    <span class="text-sm text-gray-600">Roll Number</span>
+    <input id="rollInput" class="w-full border p-2 rounded" />
+  </label>
+
+  <label class="block mb-6">
+    <span class="text-sm text-gray-600">Student Name</span>
+    <input id="nameInput" class="w-full border p-2 rounded" />
+  </label>
+
   <button id="startBtn"
-    class="w-full py-3 bg-blue-600 text-white rounded font-semibold">
+    class="w-full bg-blue-600 text-white py-3 rounded font-semibold">
     Start Exam
   </button>
 </div>
 
+<!-- ================= EXAM SCREEN ================= -->
 <div id="examScreen"
   class="hidden bg-white w-full max-w-3xl p-6 rounded shadow">
 
-  <div class="flex justify-between mb-4">
-    <h2 class="font-bold text-lg">Assessment</h2>
+  <h1 class="text-2xl font-bold mb-4">Online Assessment</h1>
+
+  <div class="flex justify-between mb-4 text-sm text-gray-600">
+    <div id="studentInfo"></div>
     <div id="timer" class="font-mono font-bold text-red-600"></div>
   </div>
 
@@ -45,40 +57,38 @@
 /* ================= CONFIG ================= */
 const EXAM_ID = "AI_MIDTERM_01";
 const EXAM_DURATION_MIN = 30;
-const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbxUX09weHXOk2D6iijxzIAscvZEQLeOIO_2Hx-YAdq2vRa55YBI9X_PcHIsb1eYDqGMSA/exec";
+const SUBMIT_URL = "PASTE_YOUR_APPS_SCRIPT_URL";
 
 /* ================= STATE ================= */
-let examStarted = false;
+let studentId = "";
+let studentName = "";
+
 let currentQ = 0;
 let answers = {};
 let tabSwitchCount = 0;
 let fullscreenExitCount = 0;
 let pageReloadCount = 0;
 let copyPasteAttempts = 0;
+
 let examStartTime;
 
 /* ================= QUESTIONS ================= */
 let questions = shuffle([
   {
     id: "q1",
-    text: "Which model type is best for tabular data?",
+    text: "Which model works best for tabular data?",
     options: ["CNN", "RNN", "Random Forest", "GAN"],
     correct: "Random Forest"
   },
   {
     id: "q2",
-    text: "What does overfitting indicate?",
-    options: [
-      "High bias",
-      "High variance",
-      "Low accuracy",
-      "Low training score"
-    ],
+    text: "Overfitting usually indicates?",
+    options: ["High bias", "High variance", "Low data", "Undertraining"],
     correct: "High variance"
   },
   {
     id: "q3",
-    text: "Which metric is best for imbalanced datasets?",
+    text: "Best metric for imbalanced datasets?",
     options: ["Accuracy", "Precision", "Recall", "F1 Score"],
     correct: "F1 Score"
   }
@@ -88,13 +98,28 @@ questions.forEach(q => q.options = shuffle(q.options));
 
 /* ================= START EXAM ================= */
 document.getElementById("startBtn").onclick = async () => {
-  await document.documentElement.requestFullscreen?.();
-  examStarted = true;
-  examStartTime = new Date().toISOString();
+  studentId = document.getElementById("rollInput").value.trim();
+  studentName = document.getElementById("nameInput").value.trim();
+
+  if (!studentId || !studentName) {
+    alert("Please enter Roll Number and Name");
+    return;
+  }
+
+  try {
+    await document.documentElement.requestFullscreen();
+  } catch {
+    alert("Fullscreen permission is required to start the exam.");
+    return;
+  }
 
   document.getElementById("startScreen").classList.add("hidden");
   document.getElementById("examScreen").classList.remove("hidden");
 
+  document.getElementById("studentInfo").innerText =
+    `${studentName} (${studentId})`;
+
+  examStartTime = new Date().toISOString();
   startTimer();
   renderQuestion();
 };
@@ -102,6 +127,7 @@ document.getElementById("startBtn").onclick = async () => {
 /* ================= UI ================= */
 function renderQuestion() {
   const q = questions[currentQ];
+
   document.getElementById("questionBox").innerHTML = `
     <div class="mb-4 font-semibold">
       Q${currentQ + 1}. ${q.text}
@@ -130,13 +156,16 @@ function renderQuestion() {
 }
 
 /* ================= TIMER ================= */
+let remaining;
 let timerInterval;
+
 function startTimer() {
-  let remaining = EXAM_DURATION_MIN * 60;
+  remaining = EXAM_DURATION_MIN * 60;
+
   timerInterval = setInterval(() => {
     remaining--;
     document.getElementById("timer").innerText =
-      `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2,"0")}`;
+      `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
 
     if (remaining <= 0) submitExam();
   }, 1000);
@@ -144,26 +173,24 @@ function startTimer() {
 
 /* ================= ANTI-CHEAT ================= */
 document.addEventListener("visibilitychange", () => {
-  if (examStarted && document.hidden) tabSwitchCount++;
+  if (document.hidden) tabSwitchCount++;
 });
 
 document.addEventListener("fullscreenchange", () => {
-  if (examStarted && !document.fullscreenElement) fullscreenExitCount++;
+  if (!document.fullscreenElement) fullscreenExitCount++;
 });
 
 document.addEventListener("copy", e => {
-  if (!examStarted) return;
   e.preventDefault();
   copyPasteAttempts++;
 });
 document.addEventListener("paste", e => {
-  if (!examStarted) return;
   e.preventDefault();
   copyPasteAttempts++;
 });
 
 window.addEventListener("beforeunload", () => {
-  if (examStarted) pageReloadCount++;
+  pageReloadCount++;
 });
 
 /* ================= NAV ================= */
@@ -189,6 +216,8 @@ function submitExam() {
   });
 
   const payload = {
+    student_id: studentId,
+    student_name: studentName,
     exam_id: EXAM_ID,
     answers,
     score,
@@ -225,5 +254,6 @@ function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 </script>
+
 </body>
 </html>
