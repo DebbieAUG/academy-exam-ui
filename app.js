@@ -343,6 +343,10 @@ window.selectAnswer = async function (qId, option) {
 // Navigation
 // ===============================
 window.nextQuestion = async function () {
+  if (!currentAttemptData) {
+    alert('Exam not initialized. Please start the exam first.');
+    return;
+  }
   if (
     currentAttemptData.currentQuestionIndex <
     currentAttemptData.questionOrder.length - 1
@@ -357,6 +361,10 @@ window.nextQuestion = async function () {
 };
 
 window.prevQuestion = async function () {
+  if (!currentAttemptData) {
+    alert('Exam not initialized. Please start the exam first.');
+    return;
+  }
   if (currentAttemptData.currentQuestionIndex > 0) {
     currentAttemptData.currentQuestionIndex--;
     await updateDoc(currentAttemptRef, {

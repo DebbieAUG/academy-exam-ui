@@ -8,7 +8,7 @@ service cloud.firestore {
     // ================================
     match /attempts/{attemptId} {
 
-      // CREATE: allowed only if doc does not exist
+      // CREATE: exactly once
       allow create: if
         !exists(/databases/$(database)/documents/attempts/$(attemptId))
         && request.resource.data.status == "IN_PROGRESS"
@@ -16,26 +16,27 @@ service cloud.firestore {
         && request.resource.data.submitTime == null
         && request.resource.data.score == null;
 
-      // READ: allow owner to read their attempt (by roll number in doc)
-      allow read: if
-        request.auth != null
-        || (resource.data.rollNumber == request.auth.uid);
+      // READ: allowed (no auth, resume support)
+      allow read: if true;
 
-      // QUESTIONS COLLECTION (needed for reads)
-      match /questions/{questionId} {
-        allow read: if true;
-      }
-
-      // UPDATE: extremely restricted
+      // UPDATE: only while IN_PROGRESS, no score writes
       allow update: if
         resource.data.status == "IN_PROGRESS"
         && request.resource.data.status in ["IN_PROGRESS", "SUBMITTED"]
         && request.resource.data.startTime == resource.data.startTime
-        && request.resource.data.score == null
-        && resource.data.score == null;
+        && resource.data.score == null
+        && request.resource.data.score == null;
 
       // DELETE: never allowed
       allow delete: if false;
+    }
+
+    // ================================
+    // QUESTIONS COLLECTION
+    // ================================
+    match /questions/{questionId} {
+      allow read: if true;
+      allow create, update, delete: if false;
     }
 
     // ================================
@@ -43,8 +44,7 @@ service cloud.firestore {
     // ================================
     match /events/{eventId} {
       allow create: if true;
-      allow read: if false;
-      allow update, delete: if false;
+      allow read, update, delete: if false;
     }
 
     // ================================
