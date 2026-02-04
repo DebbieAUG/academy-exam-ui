@@ -16,8 +16,15 @@ service cloud.firestore {
         && request.resource.data.submitTime == null
         && request.resource.data.score == null;
 
-      // READ: allowed (students must be able to resume)
-      allow read: if true;
+      // READ: allow owner to read their attempt (by roll number in doc)
+      allow read: if
+        request.auth != null
+        || (resource.data.rollNumber == request.auth.uid);
+
+      // QUESTIONS COLLECTION (needed for reads)
+      match /questions/{questionId} {
+        allow read: if true;
+      }
 
       // UPDATE: extremely restricted
       allow update: if

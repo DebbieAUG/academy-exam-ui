@@ -46,7 +46,13 @@ let ALL_QUESTIONS = [];
 // Utilities
 // ===============================
 function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+  // Fisher-Yates shuffle for uniform randomness
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 // ===============================
@@ -64,7 +70,7 @@ function logEvent(attemptId, type, meta = {}) {
   addDoc(collection(db, "events"), {
     attemptId,
     type,
-    timestamp: new Date(),
+    timestamp: serverTimestamp(),
     meta
   }).catch(() => {});
 }
@@ -122,8 +128,24 @@ window.startExam = async function () {
   const name = document.getElementById("name").value.trim();
   const roll = document.getElementById("roll").value.trim();
 
+  // Validate inputs
   if (!name || !roll) {
     alert("Enter name and roll number");
+    return;
+  }
+
+  if (name.length < 2 || name.length > 100) {
+    alert("Name must be between 2 and 100 characters");
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9\-]+$/.test(roll)) {
+    alert("Roll number can only contain letters, numbers, and hyphens");
+    return;
+  }
+
+  if (roll.length < 2 || roll.length > 50) {
+    alert("Roll number must be between 2 and 50 characters");
     return;
   }
 
@@ -137,20 +159,30 @@ window.startExam = async function () {
 
   ALL_QUESTIONS = await loadQuestions();
 
+  if (!ALL_QUESTIONS || ALL_QUESTIONS.length === 0) {
+    alert('No questions available for this exam. Please contact the administrator.');
+    return;
+  }
+
   // ===============================
   // RESUME
   // ===============================
   if (snap.exists()) {
     const data = snap.data();
 
-    if (data.status === "SUBMITTED" && data.score !== null) {
-      document.getElementById("question-box").innerHTML =
-        `<h2>Your Score: ${data.score}%</h2>`;
+    if (data.status === "SUBMITTED") {
+      if (data.score !== null) {
+        document.getElementById("question-box").innerHTML =
+          `<h2>Your Score: ${data.score}%</h2>`;
+      } else {
+        document.getElementById("question-box").innerHTML =
+          `<h2>Exam submitted. Awaiting scoring.</h2>`;
+      }
       return;
     }
 
     if (data.status !== "IN_PROGRESS") {
-      alert("Exam already submitted.");
+      alert("Exam already submitted or not available.");
       return;
     }
 
@@ -159,7 +191,7 @@ window.startExam = async function () {
 
     attachAntiCheat(attemptId);
     requestFullscreen();
-    startTimer(data, attemptRef);
+    await startTimer(data, attemptRef);
     renderQuestion();
     return;
   }
@@ -193,18 +225,32 @@ window.startExam = async function () {
 
   attachAntiCheat(attemptId);
   requestFullscreen();
-  startTimer(currentAttemptData, attemptRef);
+  await startTimer(currentAttemptData, attemptRef);
   renderQuestion();
 };
 
 // ===============================
 // Timer
 // ===============================
-function startTimer(attemptData, attemptRef) {
+async function startTimer(attemptData, attemptRef) {
+  // Ensure server timestamp is resolved
+  if (!attemptData.startTime || typeof attemptData.startTime.toDate !== 'function') {
+    try {
+      const fresh = await getDoc(attemptRef);
+      attemptData = fresh.data();
+      currentAttemptData = attemptData;
+    } catch (e) {
+      console.warn('Could not refresh attempt startTime', e);
+    }
+  }
+
+  if (!attemptData.startTime || typeof attemptData.startTime.toDate !== 'function') {
+    document.getElementById('timer').innerText = 'Timer not available';
+    return;
+  }
+
   const startTime = attemptData.startTime.toDate();
-  const endTime =
-    startTime.getTime() +
-    attemptData.durationMinutes * 60 * 1000;
+  const endTime = startTime.getTime() + attemptData.durationMinutes * 60 * 1000;
 
   if (timerInterval) clearInterval(timerInterval);
 
@@ -213,8 +259,7 @@ function startTimer(attemptData, attemptRef) {
 
     if (remaining <= 0) {
       clearInterval(timerInterval);
-      document.getElementById("timer").innerText =
-        "Time up! Submitting...";
+      document.getElementById('timer').innerText = 'Time up! Submitting...';
       await autoSubmit(attemptRef);
       return;
     }
@@ -222,8 +267,7 @@ function startTimer(attemptData, attemptRef) {
     const m = Math.floor(remaining / 60000);
     const s = Math.floor((remaining % 60000) / 1000);
 
-    document.getElementById("timer").innerText =
-      `Time left: ${m}:${s.toString().padStart(2, "0")}`;
+    document.getElementById('timer').innerText = `Time left: ${m}:${s.toString().padStart(2, '0')}`;
   }, 1000);
 }
 
@@ -234,11 +278,12 @@ async function autoSubmit(attemptRef) {
   try {
     await updateDoc(attemptRef, {
       status: "SUBMITTED",
-      submitTime: new Date()
+      submitTime: serverTimestamp()
     });
     alert("Exam submitted.");
   } catch (e) {
     console.error("Auto-submit failed", e);
+    alert("Failed to submit exam. Please try again.");
   }
 }
 
@@ -252,11 +297,16 @@ function renderQuestion() {
 
   const q = ALL_QUESTIONS.find(x => x.questionId === qId);
 
+  if (!q) {
+    document.getElementById('question-box').innerHTML = '<p>Question not found.</p>';
+    return;
+  }
+
   let html = `<h3>Q${idx + 1}. ${q.text}</h3>`;
 
-  for (const [key, value] of Object.entries(q.options)) {
-    const checked =
-      currentAttemptData.answers[qId] === key ? "checked" : "";
+  const opts = q.options || {};
+  for (const [key, value] of Object.entries(opts)) {
+    const checked = currentAttemptData.answers && currentAttemptData.answers[qId] === key ? 'checked' : '';
 
     html += `
       <label>
@@ -276,10 +326,17 @@ function renderQuestion() {
 // Answer save
 // ===============================
 window.selectAnswer = async function (qId, option) {
+  currentAttemptData.answers = currentAttemptData.answers || {};
   currentAttemptData.answers[qId] = option;
-  await updateDoc(currentAttemptRef, {
-    answers: currentAttemptData.answers
-  });
+
+  const updateObj = {};
+  updateObj[`answers.${qId}`] = option;
+
+  try {
+    await updateDoc(currentAttemptRef, updateObj);
+  } catch (e) {
+    console.error('Failed to save answer', e);
+  }
 };
 
 // ===============================
