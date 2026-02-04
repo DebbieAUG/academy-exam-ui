@@ -1,7 +1,7 @@
 // ===============================
 // Firebase imports (ES Modules)
 // ===============================
-import { initializeApp } from "firebase/app";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
   doc,
@@ -14,7 +14,7 @@ import {
   where,
   getDocs,
   serverTimestamp
-} from "firebase/firestore";
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // ===============================
 // Firebase config (PASTE YOURS)
@@ -31,8 +31,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// At the bottom of your app.js
-document.getElementById('start-button').addEventListener('click', startExam);
 // ===============================
 // Exam constants
 // ===============================

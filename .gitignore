@@ -1,6 +1,5 @@
 seed/answers.json
 serviceAccountKey.json
-node_modules/
 
 # Logs
 logs
