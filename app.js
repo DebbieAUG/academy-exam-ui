@@ -31,7 +31,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-
+// At the bottom of your app.js
+document.getElementById('start-button').addEventListener('click', startExam);
 // ===============================
 // Exam constants
 // ===============================
