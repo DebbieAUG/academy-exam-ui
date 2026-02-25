@@ -80,14 +80,6 @@ function attachAntiCheat(attemptId) {
     if (document.hidden) logEvent(attemptId, "TAB_SWITCH");
   });
 
-  window.addEventListener("blur", () => {
-    logEvent(attemptId, "WINDOW_BLUR");
-  });
-
-  window.addEventListener("focus", () => {
-    logEvent(attemptId, "WINDOW_FOCUS");
-  });
-
   document.addEventListener("fullscreenchange", () => {
     if (!document.fullscreenElement) {
       document.getElementById("fullscreen-warning").style.display = "block";
@@ -359,10 +351,11 @@ window.submitExam = async function () {
       status: "SUBMITTED",
       submitTime: serverTimestamp()
     });
-    
     document.getElementById('question-section').classList.add('hidden');
-    document.getElementById('question-box').innerHTML = `<h2>Exam submitted successfully. Awaiting scoring.</h2>`;
+    document.getElementById('question-box').innerHTML = `<h2>Exam submitted successfully</h2>`;
     document.getElementById('question-section').classList.remove('hidden');
+    document.getElementById('question-nav').classList.add('hidden');
+    document.getElementById('question-submit').classList.add('hidden');
   } catch (e) {
     console.error('Failed to submit exam', e);
     alert('Failed to submit exam. Please try again.');

@@ -27,11 +27,6 @@
       <h1 class="text-2xl font-bold text-gray-800">
         AZ-900 Certification Exam
       </h1>
-      <div
-        id="timer"
-        class="text-lg font-semibold text-red-600">
-        Time left: --
-      </div>
     </div>
 
     <!-- Divider -->
@@ -65,13 +60,9 @@
       <button
         onclick="startExam()"
         class="w-full bg-purple-800 hover:bg-purple-900 text-white font-semibold py-2 rounded-md transition">
-        Start Exam
+        Check Score
       </button>
 
-      <p class="text-sm text-gray-500 text-center mt-2">
-        This exam must be taken in fullscreen mode.  
-        You have only one attempt.
-      </p>
     </div>
 
     <!-- Question Section -->
@@ -83,35 +74,65 @@
         class="text-gray-800 text-lg leading-relaxed mb-6">
         <!-- Question injected here -->
       </div>
-
-      <!-- Navigation -->
-      <div id="question-nav" class="flex justify-between items-center gap-2">
-        <button
-          onclick="prevQuestion()"
-          class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md transition">
-          ← Previous
-        </button>
-
-        <button
-          onclick="nextQuestion()"
-          class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md transition">
-          Next →
-        </button>
-      </div>
-      <br>
-      <div id="question-submit">
-        <button
-          onclick="submitExam()"
-          class="w-full bg-purple-700 hover:bg-purple-900 text-white font-semibold py-2 rounded-md transition">
-          Submit Exam
-        </button>
-      </div>
     </div>
 
   </div>
 
   <!-- App Script -->
-  <script type="module" src="app.js"></script>
+  <script>
+    window.startExam = async function () {
+        const name = document.getElementById("name").value.trim();
+        const roll = document.getElementById("roll").value.trim();
+
+        // Validate inputs
+        if (!name || !roll) {
+            alert("Enter name and roll number");
+            return;
+        }
+
+        if (name.length < 2 || name.length > 100) {
+            alert("Name must be between 2 and 100 characters");
+            return;
+        }
+
+        if (!/^[a-zA-Z0-9\-]+$/.test(roll)) {
+            alert("Roll number can only contain letters, numbers, and hyphens");
+            return;
+        }
+
+        if (roll.length < 2 || roll.length > 50) {
+            alert("Roll number must be between 2 and 50 characters");
+            return;
+        }
+
+        document.getElementById("start-section").classList.add("hidden");
+        document.getElementById("question-section").classList.remove("hidden");  
+
+        const attemptId = `${EXAM_ID}_${roll}`;
+        const attemptRef = doc(db, "attempts", attemptId);
+        const snap = await getDoc(attemptRef);
+
+        // ===============================
+        // RESUME
+        // ===============================
+        if (snap.exists()) {
+            const data = snap.data();
+
+            if (data.status === "SUBMITTED") {
+            if (data.score !== null) {
+                document.getElementById("question-box").innerHTML =
+                `<h2>Your Score: ${data.score}%</h2>`;
+            } else {
+                document.getElementById("question-box").innerHTML =
+                `<h2>Exam submitted. Awaiting scoring.</h2>`;
+            }
+            return;
+            }
+
+            return;
+        }
+    }
+  </script>
 
 </body>
 </html>
