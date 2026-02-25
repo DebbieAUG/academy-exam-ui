@@ -35,7 +35,7 @@ const db = getFirestore(app);
 // Exam constants
 // ===============================
 const EXAM_ID = "az-900";
-const DURATION_MINUTES = 30;
+const DURATION_MINUTES = 100;
 
 let timerInterval = null;
 let currentAttemptRef = null;
