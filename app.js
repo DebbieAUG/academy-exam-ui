@@ -164,6 +164,8 @@ window.startExam = async function () {
 
     if (data.status === "SUBMITTED") {
       if (data.score !== null) {
+      document.getElementById('question-nav').classList.add('hidden');
+      document.getElementById('question-submit').classList.add('hidden');
         document.getElementById("question-box").innerHTML =
           `<h2>Your Score: ${data.score}%</h2>`;
       } else {
