@@ -193,7 +193,7 @@ window.startExam = async function () {
   // ===============================
   // CREATE NEW ATTEMPT
   // ===============================
-  const questionIds = shuffleArray(
+/*  const questionIds = shuffleArray(
     ALL_QUESTIONS.map(q => q.questionId)
   );
 
@@ -220,7 +220,7 @@ window.startExam = async function () {
   attachAntiCheat(attemptId);
   requestFullscreen();
   await startTimer(currentAttemptData, attemptRef);
-  renderQuestion();
+  renderQuestion();*/
 };
 
 // ===============================
