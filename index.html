@@ -11,13 +11,13 @@
 
 <body class="bg-gray-100 min-h-screen flex flex-col items-center">
 
-  <!-- Fullscreen Warning
+  <!-- Fullscreen Warning -->
   <div
     id="fullscreen-warning"
     onclick="requestFullscreen()"
     class="hidden w-full bg-red-100 text-red-800 text-center py-2 font-semibold cursor-pointer">
     ⚠️ You exited fullscreen. Click here to return to fullscreen.
-  </div>-->
+  </div>
 
   <!-- Main Container -->
   <div class="w-full max-w-3xl bg-white shadow-lg rounded-lg mt-8 p-6">
@@ -30,7 +30,7 @@
       <div
         id="timer"
         class="text-lg font-semibold text-red-600">
-        <!-- Time left: -- -->
+        Time left: --
       </div>
     </div>
 
@@ -65,11 +65,10 @@
       <button
         onclick="startExam()"
         class="w-full bg-purple-800 hover:bg-purple-900 text-white font-semibold py-2 rounded-md transition">
-        <!-- Start Exam -->
-         Check Score
+        Start Exam
       </button>
 
-      <p class="text-sm text-gray-500 text-center mt-2 hidden">
+      <p class="text-sm text-gray-500 text-center mt-2">
         This exam must be taken in fullscreen mode.  
         You have only one attempt.
       </p>

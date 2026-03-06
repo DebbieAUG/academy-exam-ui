@@ -164,8 +164,6 @@ window.startExam = async function () {
 
     if (data.status === "SUBMITTED") {
       if (data.score !== null) {
-      document.getElementById('question-nav').classList.add('hidden');
-      document.getElementById('question-submit').classList.add('hidden');
         document.getElementById("question-box").innerHTML =
           `<h2>Your Score: ${data.score}%</h2>`;
       } else {
@@ -193,7 +191,7 @@ window.startExam = async function () {
   // ===============================
   // CREATE NEW ATTEMPT
   // ===============================
-/*  const questionIds = shuffleArray(
+  const questionIds = shuffleArray(
     ALL_QUESTIONS.map(q => q.questionId)
   );
 
@@ -220,7 +218,7 @@ window.startExam = async function () {
   attachAntiCheat(attemptId);
   requestFullscreen();
   await startTimer(currentAttemptData, attemptRef);
-  renderQuestion();*/
+  renderQuestion();
 };
 
 // ===============================
