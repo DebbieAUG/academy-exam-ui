@@ -20,7 +20,7 @@ import {
 // Firebase config (PASTE YOURS)
 // ===============================
 const firebaseConfig = {
-    apiKey: "AIzaSyCw4Vx2RVrUM8JxwycjyRzOEerDOSb7LnE",
+    apiKey: "KEY",
     authDomain: "academy-exams.firebaseapp.com",
     projectId: "academy-exams",
     storageBucket: "academy-exams.firebasestorage.app",
